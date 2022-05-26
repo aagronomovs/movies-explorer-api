@@ -20,7 +20,6 @@ mongoose.connect('mongodb://localhost:27017/moviesdb', {
 app.use(bodyParser.json()); // для собирания JSON-формата
 app.use(bodyParser.urlencoded({ extended: true })); // для приёма веб-страниц внутри POST-запроса
 app.use(cookieParser());
-app.use(express.json());
 
 app.use(helmet());
 app.use(requestLogger);
