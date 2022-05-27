@@ -9,6 +9,8 @@ const { centralizedErrors } = require('./middlewares/centralizedErrors');
 const NotFoundError = require('./errors/notFoundError');
 const routerUser = require('./routes/users');
 const routerMovies = require('./routes/movies');
+const { limiter } = require('./middlewares/rateLimiter');
+const { cors } = require('./middlewares/cors');
 
 const { PORT = 3000 } = process.env;
 
@@ -24,7 +26,9 @@ app.use(bodyParser.urlencoded({ extended: true })); // для приёма ве�
 app.use(cookieParser());
 
 app.use(helmet());
+app.use(limiter);
 app.use(requestLogger);
+app.use(cors);
 
 app.use(routerUser);
 app.use(routerMovies);
