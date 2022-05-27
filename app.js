@@ -3,10 +3,12 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
-const { celebrate, Joi, errors } = require('celebrate');
+const { errors } = require('celebrate');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
 const { centralizedErrors } = require('./middlewares/centralizedErrors');
 const NotFoundError = require('./errors/notFoundError');
+const routerUser = require('./routes/users');
+const routerMovies = require('./routes/movies');
 
 const { PORT = 3000 } = process.env;
 
@@ -24,6 +26,8 @@ app.use(cookieParser());
 app.use(helmet());
 app.use(requestLogger);
 
+app.use(routerUser);
+app.use(routerMovies);
 app.use('*', (req, res, next) => {
   next(new NotFoundError('Запрошенной страницы не существует'));
 });

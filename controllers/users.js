@@ -110,3 +110,7 @@ module.exports.updateProfile = (req, res, next) => {
       }
     });
 };
+
+module.exports.logout = (req, res, next) => {
+  res.clearCookie('token').send({ message: 'Cookies успешно удалены' })
+}
