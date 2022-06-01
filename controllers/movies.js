@@ -40,7 +40,8 @@ module.exports.createMovie = (req, res, next) => {
     trailer,
     thumbnail,
     movieId,
-    owner: req.user._id })
+    owner: req.user._id,
+  })
     .then((movie) => res.send({ data: movie }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
@@ -54,7 +55,7 @@ module.exports.createMovie = (req, res, next) => {
 // Удалить фильмы по id
 module.exports.deleteMovie = (req, res, next) => {
   const { id } = req.params;
-  Card.findById(id)
+  Movie.findById(id)
     .orFail(() => new NotFoundError('Фильм с указанным id не найден'))
     .then((movie) => {
       if (movie.owner.toString() === req.user._id) {

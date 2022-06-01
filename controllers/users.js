@@ -7,16 +7,12 @@ const ConflictError = require('../errors/conflictError');
 const NotFoundError = require('../errors/notFoundError');
 
 const SALT_ROUND = 10;
+const { NODE_ENV, JWT_SECRET } = process.env;
 
 // Логин
 module.exports.login = (req, res, next) => {
-  const {
-    email,
-    password,
-  } = req.body;
-  const { NODE_ENV, JWT_SECRET } = process.env;
-
-  return User.findUserByCredentials(email, password)
+  const { email, password } = req.body;
+  User.findUserByCredentials(email, password)
     .then((user) => {
       // создадим токен
       const token = jwt.sign(
@@ -45,17 +41,12 @@ module.exports.createUser = (req, res, next) => {
   const {
     name,
     email,
-    password,
   } = req.body;
-
-  if (!email || !password) {
-    return next(new BadRequestError('Нужны почта и пароль'));
-  }
 
   return bcrypt.hash(req.body.password, SALT_ROUND)
     .then((hash) => User.create({
       name,
-      email: req.body.email,
+      email,
       password: hash,
     }))
     .then((user) => res.send({
@@ -76,22 +67,18 @@ module.exports.createUser = (req, res, next) => {
 module.exports.getCurrentUser = (req, res, next) => {
   User.findById(req.user._id)
     .orFail(() => new NotFoundError('Пользователь с таким id не найден'))
-    .then((user) => res.send(user))
+    .then((user) => res.status(200).send({
+      name: user.name,
+      email: user.email,
+    }))
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        next(new BadRequestError('Передан невалидный id пользователя'));
-      } else {
-        next(err);
-      }
+      next(err);
     });
 };
 
 // Обновить информацию о пользователе
 module.exports.updateProfile = (req, res, next) => {
-  const {
-    name,
-    email,
-  } = req.body;
+  const { name, email } = req.body;
   User.findByIdAndUpdate(
     req.user._id,
     { name, email },
@@ -111,6 +98,6 @@ module.exports.updateProfile = (req, res, next) => {
     });
 };
 
-module.exports.logout = (req, res, next) => {
-  res.clearCookie('token').send({ message: 'Cookies успешно удалены' })
-}
+module.exports.logout = (req, res) => {
+  res.clearCookie('token').send({ message: 'Cookies успешно удалены' });
+};
