@@ -1,5 +1,6 @@
-const routerUser = require('express').Router();
+// routes/users.js
 
+const routerUser = require('express').Router();
 const {
   getCurrentUser,
   updateProfile,

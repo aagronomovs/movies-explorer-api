@@ -9,14 +9,20 @@ const { requestLogger, errorLogger } = require('./middlewares/logger');
 
 const { limiter } = require('./middlewares/rateLimiter');
 const { cors } = require('./middlewares/cors');
-const routers = require('./routes/index');
+const routerUser = require('./routes/users');
+const routerMovies = require('./routes/movies');
+const { createUser, login, logout } = require('./controllers/users');
+const { validateSignup, validateLogin } = require('./middlewares/validation');
+const auth = require('./middlewares/auth');
 const { centralizedErrors } = require('./middlewares/centralizedErrors');
+const NotFoundError = require('./errors/notFoundError');
 
-const { PORT = 3000, MONGO, NODE_ENV } = process.env;
+const { PORT = 3000 } = process.env;
+const { MONGO = 'mongodb://localhost:27017/moviesdb' } = process.env;
 
 const app = express();
 
-mongoose.connect(NODE_ENV === 'production' ? `${MONGO}` : 'mongodb://localhost:27017/moviesdb-dev', {
+mongoose.connect(MONGO, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -30,7 +36,27 @@ app.use(limiter);
 app.use(requestLogger);
 app.use(cors);
 
-app.use(routers);
+app.get('/crash-test', () => {
+  setTimeout(() => {
+    throw new Error('Сервер сейчас упадёт');
+  }, 0);
+});
+
+// роуты, не требующие авторизации
+app.post('/signup', validateSignup, createUser);
+app.post('/signin', validateLogin, login);
+
+// авторизация
+app.use(auth);
+
+// роуты, которым авторизация нужна
+app.use(routerUser);
+app.use(routerMovies);
+app.use('/signout', logout);
+
+app.use('*', (req, res, next) => {
+  next(new NotFoundError('Запрошенной страницы не существует'));
+});
 
 app.use(errorLogger);
 app.use(errors());

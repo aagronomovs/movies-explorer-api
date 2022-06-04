@@ -7,16 +7,20 @@ const ConflictError = require('../errors/conflictError');
 const NotFoundError = require('../errors/notFoundError');
 
 const SALT_ROUND = 10;
-const { NODE_ENV, JWT_SECRET } = process.env;
 
-// Логин
 module.exports.login = (req, res, next) => {
-  const { email, password } = req.body;
-  User.findUserByCredentials(email, password)
+  const {
+    email,
+    password,
+  } = req.body;
+  const { NODE_ENV, JWT_SECRET } = process.env;
+
+  return User.findUserByCredentials(email, password)
     .then((user) => {
       // создадим токен
       const token = jwt.sign(
         { _id: user._id },
+        // 'some-secret-key',
         NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret',
         { expiresIn: '7d' },
       );
@@ -27,7 +31,6 @@ module.exports.login = (req, res, next) => {
           maxAge: 3600000 * 24 * 7,
           httpOnly: true,
           sameSite: 'None',
-          secure: true,
         })
         .status(200).send({ token });
     })
@@ -36,12 +39,16 @@ module.exports.login = (req, res, next) => {
     });
 };
 
-// Создание пользователя
 module.exports.createUser = (req, res, next) => {
   const {
     name,
     email,
+    password,
   } = req.body;
+
+  if (!email || !password) {
+    return next(new BadRequestError('Нужны почта и пароль'));
+  }
 
   return bcrypt.hash(req.body.password, SALT_ROUND)
     .then((hash) => User.create({
@@ -52,6 +59,7 @@ module.exports.createUser = (req, res, next) => {
     .then((user) => res.send({
       name: user.name,
       email: user.email,
+      _id: user._id,
     }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
@@ -63,22 +71,24 @@ module.exports.createUser = (req, res, next) => {
     });
 };
 
-// Получить информацию о пользователе
 module.exports.getCurrentUser = (req, res, next) => {
   User.findById(req.user._id)
     .orFail(() => new NotFoundError('Пользователь с таким id не найден'))
-    .then((user) => res.status(200).send({
-      name: user.name,
-      email: user.email,
-    }))
+    .then((data) => res.send(data))
     .catch((err) => {
-      next(err);
+      if (err.name === 'ValidationError') {
+        next(new BadRequestError('Передан невалидный id пользователя'));
+      } else {
+        next(err);
+      }
     });
 };
 
-// Обновить информацию о пользователе
 module.exports.updateProfile = (req, res, next) => {
-  const { name, email } = req.body;
+  const {
+    name,
+    email,
+  } = req.body;
   User.findByIdAndUpdate(
     req.user._id,
     { name, email },
